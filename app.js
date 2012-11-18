@@ -13,7 +13,8 @@ var server = require('./client/server')
   , router = require('./client/router')
   , actions = require('./client/actions')
   , strategies = require('./strategies')
-  , report = require('./helpers/report');
+  , report = require('./helpers/report')
+  , cilanis = require('./helpers/cilanis');
   
 // Globals
 
@@ -98,13 +99,16 @@ function start_app(socket) {
       Strategies.populate(_.last(pricefeed, 21));
       crt++;
     });
-  
-    xOver(
-      _.last(Strategies.SMA.fast), 
-      _.last(Strategies.SMA.slow), 
-      trade_client.buy,
-      trade_client.sell
-    );
+    
+    _.each(['SMA', 'LWMA', 'EMA', 'TMA'], function(scheme) {
+      xOver(
+        _.last(Strategies[scheme].fast),
+        _.last(Strategies[scheme].slow),
+        Strategies[scheme].name,
+        trade_client.buy,
+        trade_client.sell
+      )
+    }); 
     
   });
   
@@ -114,23 +118,22 @@ function start_app(socket) {
   
   var fastAboveSlow; //Initialize to the right value!
   
-  function xOver(fast, slow, buy, sell) {
+  function xOver(fast, slow, name, buy, sell) {
     if(typeof fastAboveSlow === 'undefined') {
       fastAboveSlow = fast > slow;
       return;
     }
-  
-    xOverHelper(fast, slow, buy, sell);
+    xOverHelper(fast, slow, name, buy, sell);
   }
   
-  function xOverHelper(fast, slow, buy, sell) {
+  function xOverHelper(fast, slow, name, buy, sell) {
     if( fastAboveSlow != (fast > slow) ) {
       fastAboveSlow = !fastAboveSlow;
       
       if(fast > slow) {
-        buy( Strategies.SMA.name );
+        buy( name );
       } else {
-        sell( Strategies.SMA.name );
+        sell( name );
       }
     }
   }
@@ -141,28 +144,37 @@ function start_app(socket) {
   
   var bstypes = [],
     bsprices = [],
-    bstimes = [],
-    bsstrategies = [];
+    bsstrategies = [],
+    minTimes = [],
+    maxTimes = [];
   
   trade_client.buy = function(strategy) {
-    trade_client.write('B\n');
-    bstypes.push("buy");
-    bsstrategies.push(strategy);
+    if(maxTimes.length <= 32400) {
+      trade_client.write('B\n');
+      bstypes.push("buy");
+      bsstrategies.push(strategy);
+      minTimes.push(crt);
+    }
   }
   
   trade_client.sell = function(strategy) {
-    trade_client.write('S\n');
-    bstypes.push("sell");
-    bsstrategies.push(strategy);
-    bstimes.push(crt);
+    if(maxTimes.length <= 32400) {
+      trade_client.write('S\n');
+      bstypes.push("sell");
+      bsstrategies.push(strategy);
+      minTimes.push(crt);
+    }
   }
   
   trade_client.on('data', function(data) {
     if(data.toString() == "E") {
       console.log("E");
     }
+    maxTimes.push(crt);
     bsprices.push(data);
   });
+  
+  
   
   trade_client.on('end', function() {
     var pricesfmt = [];
@@ -173,11 +185,40 @@ function start_app(socket) {
     });
   
     pricesfmt = _.compact(pricesfmt);
+    
+    console.log(bstypes.length);
+    console.log(minTimes.length);
+    console.log(maxTimes.length);
   
-    var transactionInfo = report.formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
-    console.log(_.first(transactionInfo, 10));
+    var bstimes = _.map(
+      _.zip(minTimes, maxTimes, pricesfmt),
+      function (arr) {
+        return _.find(
+          _.range(arr[0], pricefeed.length),
+          function(a) {
+            return pricefeed[a] == arr[2];
+          }
+          );
+      }
+      );
+  
+    var transactionInfo = report.formatTransactionInfo(bstimes, bstypes, pricesfmt, bsstrategies);
+    transactionInfo = _.filter(transactionInfo, function(a) {
+      return typeof a.price != 'undefined';
+    })
+  
+    console.log(transactionInfo);
+  
+  
+    var codejam = {
+      'team': 'AJ has no class',
+      'destination': 'jabersami@gmail.com',
+      'transactions': transactionInfo
+    }
+    
+    // fs.writeFile('codejam.json', JSON.stringify(codejam));
+  
   });
-
   
 }
 

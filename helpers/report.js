@@ -1,18 +1,23 @@
 var schedule = require('./schedule');
 
-function formatTransactionInfo(modes, prices, times, strategies) {
-  var transactions = _.zip(modes, prices, times, strategies);
+function formatTransactionInfo(times, modes, prices, strategies) {
+  var transactions = _.zip(times, modes, prices, strategies);
   return _.map(transactions, formatTransaction);
 }
 
 function formatTransaction(data) {
-  json = {
-    type: data[0],
-    price: data[1],
-    time: data[2],
-    strategy: data[3],
-    manager: schedule.getManager( data[2], data[3] )
+  var json;
+  try {
+    json = {
+      time: data[0].toString(),
+      type: data[1],
+      price: data[2],
+      manager: schedule.getManager( data[0], data[3] ),
+      strategy: data[3]
+    }
   }
+  catch(e) { console.log(e) }
+
   return json;
 }
 
