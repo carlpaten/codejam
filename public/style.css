@@ -1,0 +1,45 @@
+#graph {
+  height: 500px;
+  border: 1px solid #eee;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.row {
+  margin-top: 10px;
+}
+.sponsors {
+  background-color: #eee;
+  padding-top: 40px;
+  padding-bottom: 50px;
+  margin-bottom: 20px;
+}
+.sponsors-title {
+  margin-top: 50px;
+}
+footer {
+  padding-bottom: 50px;
+}
+#date-container {
+  position: relative;
+}
+#date {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.hidden {
+  display: none;
+  opacity: 0;
+}
+    
+/* Raphael styles */
+text {
+  font-family: arial;
+}
+
+path {
+  stroke-width: 2;
+}

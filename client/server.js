@@ -1,7 +1,7 @@
 var http = require('http')
   , url = require('url');
-
-function start(route, handle) {
+  
+function start_server(route, handle, start_socket, start_app) {
 
   function on_request(request, response) {
     var pathname = url.parse(request.url).pathname;
@@ -14,9 +14,8 @@ function start(route, handle) {
  
   }
   
-  http.createServer(on_request).listen(8888);
-  console.log('Client server started');
-
+  var server = http.createServer(on_request).listen(8888);
+  start_socket(server, start_app);
 }
 
-exports.start = start;
+exports.start = start_server;

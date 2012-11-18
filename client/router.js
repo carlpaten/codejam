@@ -1,7 +1,8 @@
 exports.route = function(handle, pathname, response) {
-  
   if (typeof handle[pathname] === 'function') {
     handle[pathname](response);
+  } else if(/\.(js|png|css)/.test(pathname)) {
+    handle['static'](pathname, response)
   } else {
     console.log("No request handler found for " + pathname);
         
