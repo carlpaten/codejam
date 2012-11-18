@@ -1,16 +1,5 @@
-var socket = io.connect('http://0.0.0.0');
-
-socket.on('data', function(data) {
-  console.log(data);
-});
-
-socket.on('news', function (data) {
-  console.log(data);
-  socket.emit('my other event', { my: 'data' });
-});  
-  
-
 // helpers
+var socket = io.connect('http://0.0.0.0');
 
 String.prototype.capitalize = function() {
   return this.charAt(0).toUpperCase() + this.slice(1).toLowerCase();
@@ -40,6 +29,18 @@ function get_color_from(types) {
 // DOM ready
 
 $(function() {
+  
+  socket.emit("hello");
+  
+
+  socket.on('data', function(data) {
+    console.log(data);
+  });
+  
+  socket.on('news', function (data) {
+    console.log(data);
+    socket.emit('my other event', { my: 'data' });
+  });  
   
   $('#date').text(new Date().toDateString());
     
@@ -79,6 +80,7 @@ $(function() {
     $(this).text("Started").addClass("disabled");
     
     socket.emit('start');
+    console.log('emitted start');
   });
   
   

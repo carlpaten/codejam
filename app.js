@@ -30,9 +30,7 @@ var handle = {};
 handle['/'] = actions.index;
 handle['static'] = actions.static;
 
-server.start(router.route, handle, socket.start, function(s) {
-  s.emit('data', 'test');
-});
+server.start(router.route, handle, socket.start, start_app);
 
 /*
 
@@ -67,9 +65,20 @@ handle['/data/'] = function(response) {
 
 function start_app(socket) {
   
+  console.log(socket);
+  
+  socket.on('hello', function() {
+    console.log('Hello!');
+  });
+  
     // TCP Server
   
   var price_client = net.connect({ port: 8000 });
+  
+  socket.on('start', function(data) {
+    console.log('Price client connected');
+    price_client.write('H\n');
+  });
   
   price_client.setEncoding('ascii');
   
