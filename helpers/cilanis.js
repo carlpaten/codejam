@@ -1,9 +1,9 @@
 var https = require('https');
 
-function send_report(data, callback) {
+function send_report(json, on_data_callback) {
   
+  var data = JSON.stringify(json);
   var options = {
-    
     host: 'stage-api.e-signlive.com',
     path: '/aws/rest/services/codejam',
     headers: {
@@ -18,10 +18,9 @@ function send_report(data, callback) {
     console.log("statusCode: ", res.statusCode);
     console.log("headers: ", res.headers);
   
-    res.on('data', function(d) {
-      console.log(d);
-    });
+    res.on('data', on_data_callback);
   });
+  req.write(data);
   req.end();
   
   req.on('error', function(e) {
@@ -30,3 +29,4 @@ function send_report(data, callback) {
   
 }
 
+exports.send = send_report;

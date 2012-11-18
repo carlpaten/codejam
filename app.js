@@ -98,6 +98,15 @@ function start_app(socket) {
       pricefeed.push(val);
       Strategies.populate(_.last(pricefeed, 21));
       crt++;
+      if(crt % 100 == 0) {
+        var payload = {'time': crt};
+        _.each(['SMA', 'LWMA', 'EMA', 'TMA'], function(scheme) {
+          payload[scheme] = {};
+          payload[scheme].slow = _.last(Strategies[scheme].slow);
+          payload[scheme].fast = _.last(Strategies[scheme].fast);
+        });
+        socket.emit('data', payload);
+      }
     });
     
     _.each(['SMA', 'LWMA', 'EMA', 'TMA'], function(scheme) {
@@ -204,8 +213,8 @@ function start_app(socket) {
   
     var transactionInfo = report.formatTransactionInfo(bstimes, bstypes, pricesfmt, bsstrategies);
     transactionInfo = _.filter(transactionInfo, function(a) {
-      return typeof a.price != 'undefined';
-    })
+      return typeof a !== 'undefined'
+    });
   
     console.log(transactionInfo);
   
