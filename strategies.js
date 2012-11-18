@@ -6,10 +6,11 @@
 
 var _ = require('underscore');
 
-function Strategy(f) {
+function Strategy(f, name) {
 	this.populate = f;
 	this.slow = [];
 	this.fast = [];
+	this.name = name;
 }
 
 var Strategies = {
@@ -20,7 +21,7 @@ var Strategies = {
 		this.TMA.populate(arr);
 	},
 
-	SMA: new Strategy(function(datapoints) {
+	SMA: new Strategy((function(datapoints) {
 		function SMA_optimize(datapoints, n)
 		{
 			return Math.round( (_.last(datapoints)/n - datapoints[datapoints.length-n-1]/n) * 1000) /1000;
@@ -44,9 +45,9 @@ var Strategies = {
 			this.fast.push(_.last(this.fast) + SMA_optimize(datapoints,5));
 			this.slow.push(_.last(this.slow) +  SMA_optimize(datapoints,20));
 		}
-	}),
+	}), 'SMA'),
 
-	LWMA: new Strategy(function(datapoints) {
+	LWMA: new Strategy((function(datapoints) {
 		function LWMA_optimize(datapoints, n)
 		{
 			var factors = _.range(1,n+1);
@@ -71,9 +72,9 @@ var Strategies = {
 			this.fast = LWMA_optimize(datapoints, 5);
 			this.slow = LWMA_optimize(datapoints, 20);
 		}
-	}),
+	}), 'LWMA'),
 
-	EMA: new Strategy(function(datapoints) {
+	EMA: new Strategy((function(datapoints) {
 		function EMA_optimize(lastp, n, prev)
 		{
 			var value = prev + ((lastp - prev) * (2/(n+1)));
@@ -94,9 +95,9 @@ var Strategies = {
 			this.fast.push(	EMA_optimize( lastprice, 5, fastEMA) );
 			this.slow.push( EMA_optimize( lastprice, 20, slowEMA) );
 		}
-	}),
+	}), 'EMA'),
 
-	TMA: new Strategy(function(datapoints) {
+	TMA: new Strategy((function(datapoints) {
 		function TMA_optimize(data, n)
 		{
 			return Math.round( ( (sum(data)/n) *1000 )) / 1000;
@@ -117,7 +118,7 @@ var Strategies = {
 			this.fast.push(	TMA_optimize(	_.last(Strategies.SMA.fast, 5),		5));
 			this.slow.push( TMA_optimize(	_.last(Strategies.SMA.slow, 20),	20));
 		}	
-	})
+	}), 'TMA')
 };
 
 /*Debugging
