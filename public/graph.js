@@ -13,7 +13,7 @@ function values_from(struct) {
 }
 
 // Constants
-var POINTS = 100
+var POINTS = 50
   , SCHEMES = ['sma', 'lwma', 'ema', 'tma']
   , TYPES = ['price', 'fast', 'slow']
   , COLOR = get_color_from(TYPES);
@@ -28,19 +28,7 @@ function get_color_from(types) {
 
 // DOM ready
 
-$(function() {
-  
-  socket.emit("hello");
-  
-
-  socket.on('data', function(data) {
-    console.log(data);
-  });
-  
-  socket.on('news', function (data) {
-    console.log(data);
-    socket.emit('my other event', { my: 'data' });
-  });  
+$(function() {  
   
   $('#date').text(new Date().toDateString());
     
@@ -57,6 +45,32 @@ $(function() {
   var labels = {
     x: [], y: []
   }
+  
+  var queue = [];
+  
+  socket.on('data', function(data) {
+    queue.push(data);
+  });
+    
+  socket.on('report', function (data) {
+    $('#generate-report').removeClass('disabled');
+ 
+    var rows = [];
+    for(var i=0; i<data.length; i++) {
+      rows.push("<tr>");
+      for(key in data[i]) {
+        rows.push("<td>");
+        rows.push(data[i][key]);
+        rows.push("</td>")
+      }
+      rows.push("</tr>");
+    }
+    $('tbody').html(rows.join(''));
+  });
+  
+  socket.on('ceremony-id', function(data) {
+    console.log(data);
+  });
   
   setup(graph);
   
@@ -80,7 +94,12 @@ $(function() {
     $(this).text("Started").addClass("disabled");
     
     socket.emit('start');
-    console.log('emitted start');
+    
+    update_data();
+  });
+  
+  $('#generate-report').one('click', function() {
+    socket.emit('cilanis');
   });
   
   
@@ -124,7 +143,7 @@ $(function() {
   function update_graph() {
     var new_paths = charts[active].get_svg_paths();
     $.each( TYPES, function(i, type) {
-      lines[type].animate({path: new_paths[type]}, 200, 'linear');
+      lines[type].animate({path: new_paths[type]}, 250, 'linear');
     });
     var labels = charts[active].labels();
     for(var i=0; i<labels.y.length; i++) {
@@ -135,20 +154,21 @@ $(function() {
     }
   }
   
-  var count = 1;
   function update_data() {
-    $.each( SCHEMES, function(i, scheme) {
-      for(var i=0; i<10; i++) {
+    if(queue.length > 0) {
+      var json = queue.shift();
+      $.each(SCHEMES, function(i, scheme) {
         charts[scheme].add_point({
-          price: Math.random() * 5 + 60,
-          slow: Math.random() * 5 + 60,
-          fast: Math.random() * 5 + 60
+          price: json.price,
+          slow: json[scheme].slow,
+          fast: json[scheme].fast
         });
-      }
-    });
-    count++;
-    update_graph();
-    if(count < 30) setTimeout(update_data, 1000);
+      });
+      time++;
+      update_graph();
+    }
+    
+    setTimeout(update_data, 250);
   }
   
   function draw_legend(paper) {
@@ -167,10 +187,7 @@ $(function() {
     ]
     return paper.path(instructions.join(" "));
   }
-
 });
-
-
 
 function create_lines(graph, types, color) {
   var lines = {};
@@ -240,7 +257,7 @@ Scale.prototype = {
     var labels = [];
     var offset = (this.xVal.max - this.xVal.min) / amount;
     for(var i=0; i<amount; i++) {
-      labels[i] = Math.round(i*offset + this.xVal.min)
+      labels[i] = Math.round(i*offset + this.xVal.min) * 0.5
     }
     return labels;
   },
@@ -308,23 +325,4 @@ Chart.prototype = {
     }
   }
 }
-
-/*
-  
-  $('#generate-report').one('click', function() {
-    var transactions = []; // replace!
-    $.ajax({
-      url: 'https://stage-api.e-signlive.com/aws/rest/services/codejam',
-      type: 'POST',
-      contentType: 'application/json',
-      dataType: 'json',
-      data: {
-        'team': 'AJ Has No Class',
-        'destination': 'alexander.ostrow@gmail.com',
-        'transactions': transactions
-      }
-    });
-  });
-
- */
  

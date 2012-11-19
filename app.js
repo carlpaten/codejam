@@ -13,8 +13,8 @@ var server = require('./client/server')
   , router = require('./client/router')
   , actions = require('./client/actions')
   , strategies = require('./strategies')
-  , report = require('./helpers/report')
-  , cilanis = require('./helpers/cilanis');
+  , report = require('./helpers/report');
+  // , cilanis = require('./helpers/cilanis');
   
 // Globals
 
@@ -33,46 +33,9 @@ handle['static'] = actions.static;
 
 server.start(router.route, handle, socket.start, start_app);
 
-/*
-
-handle['/data/'] = function(response) {
-  var data = {
-    'prices': pricefeed.slice(time, time+10),
-    'avgs': {
-       'sma' : {
-        'fast': Strategies.SMA.fast.slice(time, time+10),
-        'slow': Strategies.SMA.slow.slice(time, time+10)
-      },
-      'lwma': {
-        'fast': pricefeed.slice(time, time+10),
-        'slow': pricefeed.slice(time, time+10)
-      },
-      'ema': {
-        'fast': pricefeed.slice(time, time+10),
-        'slow': pricefeed.slice(time, time+10)
-      },
-      'tma': {
-        'fast': pricefeed.slice(time, time+10),
-        'slow': pricefeed.slice(time, time+10)
-      }
-    }
-  }
-  response.writeHead(200, { 'Content-type': 'text/plain'});
-  response.write( JSON.stringify(data) );
-  response.end();
-  time += 10;
-}
-*/
-
 function start_app(socket) {
   
-  console.log(socket);
-  
-  socket.on('hello', function() {
-    console.log('Hello!');
-  });
-  
-    // TCP Server
+  // TCP Server
   
   var price_client = net.connect({ port: 8000 });
   
@@ -99,11 +62,12 @@ function start_app(socket) {
       Strategies.populate(_.last(pricefeed, 21));
       crt++;
       if(crt % 100 == 0) {
-        var payload = {'time': crt};
+        var payload = {'time': crt, 'price': _.last(pricefeed)};
         _.each(['SMA', 'LWMA', 'EMA', 'TMA'], function(scheme) {
-          payload[scheme] = {};
-          payload[scheme].slow = _.last(Strategies[scheme].slow);
-          payload[scheme].fast = _.last(Strategies[scheme].fast);
+          var key = scheme.toLowerCase();
+          payload[key] = {};
+          payload[key].slow = _.last(Strategies[scheme].slow);
+          payload[key].fast = _.last(Strategies[scheme].fast);
         });
         socket.emit('data', payload);
       }
@@ -121,7 +85,7 @@ function start_app(socket) {
     
   });
   
-  price_client.on('end', function() {
+  price_client.on('end', function() {    
     console.log('Price client disconnected');
   });
   
@@ -194,10 +158,6 @@ function start_app(socket) {
     });
   
     pricesfmt = _.compact(pricesfmt);
-    
-    console.log(bstypes.length);
-    console.log(minTimes.length);
-    console.log(maxTimes.length);
   
     var bstimes = _.map(
       _.zip(minTimes, maxTimes, pricesfmt),
@@ -206,27 +166,13 @@ function start_app(socket) {
           _.range(arr[0], pricefeed.length),
           function(a) {
             return pricefeed[a] == arr[2];
-          }
-          );
-      }
-      );
+          });
+      });
   
     var transactionInfo = report.formatTransactionInfo(bstimes, bstypes, pricesfmt, bsstrategies);
-    transactionInfo = _.filter(transactionInfo, function(a) {
-      return typeof a !== 'undefined'
-    });
-  
     console.log(transactionInfo);
-  
-  
-    var codejam = {
-      'team': 'AJ has no class',
-      'destination': 'jabersami@gmail.com',
-      'transactions': transactionInfo
-    }
-    
-    // fs.writeFile('codejam.json', JSON.stringify(codejam));
-  
+    socket.emit('report', transactionInfo);
+    console.log("reported");
   });
   
 }
